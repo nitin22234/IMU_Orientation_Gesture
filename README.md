@@ -54,6 +54,3 @@ This sketch is intentionally simple so you can run it quickly in Arduino IDE and
 
 ---
 
-## License
-MIT
-# IMU_Orientation_Gesture
