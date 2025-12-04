@@ -54,3 +54,52 @@ This sketch is intentionally simple so you can run it quickly in Arduino IDE and
 
 ---
 
+## Code 
+// main.ino - GPS Emergency Alert System
+// Simple orchestrator: reads sensors, checks thresholds, sends SMS via GSM
+
+#include "sensor.h"
+#include "gps_handler.h"
+#include "gsm_handler.h"
+
+unsigned long lastCheck = 0;
+const unsigned long CHECK_INTERVAL_MS = 200; // check every 200 ms
+
+void setup() {
+  Serial.begin(115200);
+  Sensor::begin();
+  GPS::begin();
+  GSM::begin();
+  Serial.println("GPS Emergency Alert System started.");
+}
+
+void loop() {
+  // Update modules
+  GPS::update();
+  GSM::update();
+  Sensor::update();
+
+  // If sensor detects a severe event, fetch location and send SMS
+  if (Sensor::isEmergency()) {
+    Serial.println("Emergency detected! Getting GPS fix...");
+    // try to get a recent GPS fix (blocking up to some time)
+    auto fix = GPS::getFix(5000); // wait up to 5s
+    if (fix.valid) {
+      String msg = "Emergency Alert!\nAccident detected at:\nLatitude: " + String(fix.lat, 6)
+                   + "\nLongitude: " + String(fix.lon, 6)
+                   + "\nPlease send help immediately.";
+      GSM::sendSMS("+91XXXXXXXXXX", msg); // replace number
+      Serial.println("SMS sent.");
+    } else {
+      // Fallback message without coords
+      GSM::sendSMS("+91XXXXXXXXXX", "Emergency detected - GPS fix unavailable.");
+    }
+    // simple debounce to avoid repeated SMS
+    delay(10000);
+  }
+
+  // Light loop throttle
+  delay(50);
+}
+
+
